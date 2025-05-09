@@ -4,12 +4,44 @@ format: html
 editor: visual
 ---
 
-```{r}
+Here I downloaded and loaded in all the necessary packages.
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = normalizePath(".."))
 library(tidyverse)
 library(tidymodels)
 library(powerjoin)
 library(glue)
 library(vip)
 library(baguette)
+```
+Now I have to download the CAMELS dataset and documentation PDF
+```{r}
+root  <- 'https://gdex.ucar.edu/dataset/camels/file'
+```
+
+```{r}
+download.file(
+  "https://gdex.ucar.edu/dataset/camels/file/camels_attributes_v2.0.pdf",
+  destfile = here::here("data","camels_attributes_v2.0.pdf"),
+  mode     = "wb"
+)
+
+
+```
+
+After downloading the data, I had to create remote and local file paths for six CAMELS attribute text files, then I downloaded each one into my data folder. Then I read all the downloaded files into R as tibbles and performs a full outer join on gauge_id to combine them into a single dataset.
+```{r}
+types <- c("clim", "geol", "soil", "topo", "vege", "hydro")
+
+remote_files  <- glue('{root}/camels_{types}.txt')
+
+local_files   <- glue('data/camels_{types}.txt')
+
+walk2(remote_files, local_files, download.file, quiet = TRUE)
+
+camels <- map(local_files, read_delim, show_col_types = FALSE) 
+
+camels <- power_full_join(camels ,by = 'gauge_id')
 ```
 
