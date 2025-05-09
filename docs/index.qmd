@@ -62,6 +62,7 @@ Here are my 2 maps
 ```{r}
 
 library(patchwork)
+library(ggpubr)
 
 # Map 1: colored by aridity
 map_aridity <- ggplot(camels, aes(x = gauge_lon, y = gauge_lat)) +
@@ -93,10 +94,11 @@ map_pmean <- ggplot(camels, aes(x = gauge_lon, y = gauge_lat)) +
     plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
   )
 
-# Combine side-by-side
-map_aridity + map_pmean + 
-  plot_layout(ncol = 2, guides = "collect") & 
-  theme(legend.position = "bottom")
-
+ggarrange(
+  map_aridity + theme(legend.position = "bottom"),
+  map_pmean   + theme(legend.position = "bottom"),
+  ncol        = 2,
+  font.label  = list(size = 14, face = "bold")
+)
 ```
 
