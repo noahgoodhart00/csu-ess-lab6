@@ -4,4 +4,12 @@ format: html
 editor: visual
 ---
 
-Test
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(powerjoin)
+library(glue)
+library(vip)
+library(baguette)
+```
+
