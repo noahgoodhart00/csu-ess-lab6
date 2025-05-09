@@ -4,6 +4,8 @@ format: html
 editor: visual
 ---
 
+## Data Download
+
 Here I downloaded and loaded in all the necessary packages.
 
 ```{r setup, include=FALSE}
@@ -45,6 +47,8 @@ camels <- map(local_files, read_delim, show_col_types = FALSE)
 camels <- power_full_join(camels ,by = 'gauge_id')
 ```
 
+## Question 1
+
 Question 1: zero_q_freq represents the frequency of days with Q = 0 mm/day. 
 
 Here is the map that was provided to us in the lab instructions.
@@ -56,6 +60,8 @@ ggplot(data = camels, aes(x = gauge_lon, y = gauge_lat)) +
   scale_color_gradient(low = "pink", high = "dodgerblue") +
   ggthemes::theme_map()
 ```
+
+## Question 2
 
 Question #2:
 Here are my 2 maps
@@ -100,5 +106,308 @@ ggarrange(
   ncol        = 2,
   font.label  = list(size = 14, face = "bold")
 )
+```
+## Model Preparation
+
+For the next part, I have to do some model preparation. The following code (up until Question #3) is provided for us in the lab, but I am copying it all down, along with the explanations, so I can follow along easier.
+
+```{r}
+camels |> 
+  select(aridity, p_mean, q_mean) |> 
+  drop_na() |> 
+  cor()
+```
+As expected, there is a strong correlation between rainfall and mean flow, and an inverse correlation between aridity and rainfall. While both are high, we are going see if we can build a model to predict mean flow using aridity and rainfall.
+
+
+We'll start by looking that the 3 dimensions (variables) of this data. We’ll start with a XY plot of aridity and rainfall. 
+
+```{r}
+# Create a scatter plot of aridity vs rainfall
+ggplot(camels, aes(x = aridity, y = p_mean)) +
+  # Add points colored by mean flow
+  geom_point(aes(color = q_mean)) +
+  # Add a linear regression line
+  geom_smooth(method = "lm", color = "red", linetype = 2) +
+  # Apply the viridis color scale
+  scale_color_viridis_c() +
+  # Add a title, axis labels, and theme (w/ legend on the bottom)
+  theme_linedraw() + 
+  theme(legend.position = "bottom") + 
+  labs(title = "Aridity vs Rainfall vs Runnoff", 
+       x = "Aridity", 
+       y = "Rainfall",
+       color = "Mean Flow")
+```
+
+So it looks like there is a relationship between rainfall, aridity, and rainfall but it looks like an exponential decay function and is certainly not linear.
+
+To test a transformation, we can log transform the x and y axes using the scale_x_log10() and scale_y_log10() functions.
+```{r}
+ggplot(camels, aes(x = aridity, y = p_mean)) +
+  geom_point(aes(color = q_mean)) +
+  geom_smooth(method = "lm") +
+  scale_color_viridis_c() +
+  # Apply log transformations to the x and y axes
+  scale_x_log10() + 
+  scale_y_log10() +
+  theme_linedraw() +
+  theme(legend.position = "bottom") + 
+  labs(title = "Aridity vs Rainfall vs Runnoff", 
+       x = "Aridity", 
+       y = "Rainfall",
+       color = "Mean Flow")
+```
+
+We can see a log-log relationship between aridity and rainfall provides a more linear relationship. This is a common relationship in hydrology and is often used to estimate rainfall in ungauged basins. However, once the data is transformed, the lack of spread in the streamflow data is quite evident with high mean flow values being compressed to the low end of aridity/high end of rainfall.
+
+To address this, we can visualize how a log transform may benifit the q_mean data as well. Since the data is represented by color, rather then an axis, we can use the trans (transform) argument in the scale_color_viridis_c() function to log transform the color scale.
+
+```{r}
+ggplot(camels, aes(x = aridity, y = p_mean)) +
+  geom_point(aes(color = q_mean)) +
+  geom_smooth(method = "lm") +
+  # Apply a log transformation to the color scale
+  scale_color_viridis_c(trans = "log") +
+  scale_x_log10() + 
+  scale_y_log10() +
+  theme_linedraw() +
+  theme(legend.position = "bottom",
+        # Expand the legend width ...
+        legend.key.width = unit(2.5, "cm"),
+        legend.key.height = unit(.5, "cm")) + 
+  labs(title = "Aridity vs Rainfall vs Runnoff", 
+       x = "Aridity", 
+       y = "Rainfall",
+       color = "Mean Flow") 
+```
+
+Treating these three right skewed variables as log transformed, we can see a more evenly spread relationship between aridity, rainfall, and mean flow. This is a good sign for building a model to predict mean flow using aridity and rainfall.
+
+## Model Building
+
+First, we set a seed for reproducabilty, then transform the q_mean column to a log scale. It is error prone to apply transformations to the outcome variable within a recipe. So, we’ll do it a prioi.
+
+Once set, we can split the data into a training and testing set. We are going to use 80% of the data for training and 20% for testing with no stratification.
+
+Additionally, we are going to create a 10-fold cross validation dataset to help us evaluate multi-model setups.
+
+```{r}
+set.seed(123)
+# Bad form to perform simple transformations on the outcome variable within a 
+# recipe. So, we'll do it here.
+camels <- camels |> 
+  mutate(logQmean = log(q_mean))
+
+# Generate the split
+camels_split <- initial_split(camels, prop = 0.8)
+camels_train <- training(camels_split)
+camels_test  <- testing(camels_split)
+
+camels_cv <- vfold_cv(camels_train, v = 10)
+```
+
+Here, we are going to use the recipe function to define a series of data preprocessing steps.
+
+We learned quite a lot about the data in the visual EDA. We know that the q_mean, aridity and p_mean columns are right skewed and can be helped by log transformations. We also know that the relationship between aridity and p_mean is non-linear and can be helped by adding an interaction term to the model. To implement these, lets build a recipe.
+
+```{r}
+# Create a recipe to preprocess the data
+rec <-  recipe(logQmean ~ aridity + p_mean, data = camels_train) %>%
+  # Log transform the predictor variables (aridity and p_mean)
+  step_log(all_predictors()) %>%
+  # Add an interaction term between aridity and p_mean
+  step_interact(terms = ~ aridity:p_mean) %>%
+  # Drop any rows with missing values in the pred
+  step_naomit(all_predictors(), all_outcomes(), skip = TRUE)
+```
+
+First, we use prep and bake on the training data to apply the recipe. Then, we fit a linear model to the data.
+
+```{r}
+# Prepare the data
+baked_data <- prep(rec, camels_train) |> 
+  bake(new_data = NULL)
+
+# Interaction with lm
+#  Base lm sets interaction terms with the * symbol
+lm_base <- lm(logQmean ~ aridity * p_mean, data = baked_data)
+summary(lm_base)
+```
+```{r}
+# Sanity Interaction term from recipe ... these should be equal!!
+summary(lm(logQmean ~ aridity + p_mean + aridity_x_p_mean, data = baked_data))
+```
+
+
+To correctly evaluate the model on the test data, we need to apply the same preprocessing steps to the test data that we applied to the training data. We can do this using the prep and bake functions with the recipe object. This ensures the test data is transformed in the same way as the training data before making predictions.
+
+```{r}
+test_data <-  bake(prep(rec), new_data = camels_test)
+test_data$lm_pred <- predict(lm_base, newdata = test_data)
+```
+
+Now that we have the predicted values, we can evaluate the model using the metrics function from the yardstick package. This function calculates common regression metrics such as RMSE, R-squared, and MAE between the observed and predicted values.
+
+```{r}
+metrics(test_data, truth = logQmean, estimate = lm_pred)
+```
+```{r}
+ggplot(test_data, aes(x = logQmean, y = lm_pred, colour = aridity)) +
+  # Apply a gradient color scale
+  scale_color_gradient2(low = "brown", mid = "orange", high = "darkgreen") +
+  geom_point() +
+  geom_abline(linetype = 2) +
+  theme_linedraw() + 
+  labs(title = "Linear Model: Observed vs Predicted",
+       x = "Observed Log Mean Flow",
+       y = "Predicted Log Mean Flow",
+       color = "Aridity")
+```
+
+Workflows are built from a model, a preprocessor, and a execution. Here, we are going to use the linear_reg function to define a linear regression model, set the engine to lm, and the mode to regression. We then add our recipe to the workflow, fit the model to the training data, and extract the model coefficients.
+```{r}
+# Define model
+lm_model <- linear_reg() %>%
+  # define the engine
+  set_engine("lm") %>%
+  # define the mode
+  set_mode("regression")
+
+# Instantiate a workflow ...
+lm_wf <- workflow() %>%
+  # Add the recipe
+  add_recipe(rec) %>%
+  # Add the model
+  add_model(lm_model) %>%
+  # Fit the model to the training data
+  fit(data = camels_train) 
+
+# Extract the model coefficients from the workflow
+summary(extract_fit_engine(lm_wf))$coefficients
+```
+```{r}
+# From the base implementation
+summary(lm_base)$coefficients
+```
+Now that lm_wf is a workflow, data is not embedded in the model, we can use augment with the new_data argument to make predictions on the test data.
+```{r}
+#
+lm_data <- augment(lm_wf, new_data = camels_test)
+dim(lm_data)
+```
+
+As with EDA, applying for graphical and statistical evaluation of the model is a key Here, we use the metrics function to extract the default metrics (rmse, rsq, mae) between the observed and predicted mean streamflow values.
+
+We then create a scatter plot of the observed vs predicted values, colored by aridity, to visualize the model performance.
+
+```{r}
+metrics(lm_data, truth = logQmean, estimate = .pred)
+```
+
+```{r}
+ggplot(lm_data, aes(x = logQmean, y = .pred, colour = aridity)) +
+  scale_color_viridis_c() +
+  geom_point() +
+  geom_abline() +
+  theme_linedraw()
+```
+
+Here, we are going to instead use a random forest model to predict mean streamflow. We define a random forest model using the rand_forest function, set the engine to ranger, and the mode to regression. We then add the recipe, fit the model, and evaluate the skill.
+
+```{r}
+library(baguette)
+rf_model <- rand_forest() %>%
+  set_engine("ranger", importance = "impurity") %>%
+  set_mode("regression")
+
+rf_wf <- workflow() %>%
+  # Add the recipe
+  add_recipe(rec) %>%
+  # Add the model
+  add_model(rf_model) %>%
+  # Fit the model
+  fit(data = camels_train) 
+```
+
+Make predictions on the test data using the augment function and the new_data argument.
+```{r}
+rf_data <- augment(rf_wf, new_data = camels_test)
+dim(rf_data)
+```
+
+Evaluate the model using the metrics function and create a scatter plot of the observed vs predicted values, colored by aridity.
+```{r}
+metrics(rf_data, truth = logQmean, estimate = .pred)
+```
+```{r}
+ggplot(rf_data, aes(x = logQmean, y = .pred, colour = aridity)) +
+  scale_color_viridis_c() +
+  geom_point() +
+  geom_abline() +
+  theme_linedraw()
+```
+
+workflow_set is a powerful tool for comparing multiple models on the same data. It allows you to define a set of workflows, fit them to the same data, and evaluate their performance using a common metric. Here, we are going to create a workflow_set object with the linear regression and random forest models, fit them to the training data, and compare their performance using the autoplot and rank_results functions.
+```{r}
+wf <- workflow_set(list(rec), list(lm_model, rf_model)) %>%
+  workflow_map('fit_resamples', resamples = camels_cv) 
+
+autoplot(wf)
+```
+
+```{r}
+rank_results(wf, rank_metric = "rsq", select_best = TRUE)
+```
+## Question 3
+```{r}
+#–– 1. Define the new model specs ––
+# a) XGBoost regression
+xgb_spec <- boost_tree(        # gradient boosting trees
+  trees = 1000,                # default number of trees
+  tree_depth = tune(),         # tuned if desired
+  learn_rate = tune(),         # learning rate
+  loss_reduction = tune()      # gamma / min split loss
+) %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+# b) Bagged MLP (neural net) via baguette
+nn_spec <- bag_mlp(            # bagged multilayer perceptron
+  mode = "regression"
+) %>%
+  set_engine("nnet")
+
+#–– 2. Re‐create the workflow set with all four models ––
+# (we give each a name for clarity)
+models_list <- list(
+  linear = lm_model,           # from previous code
+  rf     = rf_model,
+  xgb    = xgb_spec,
+  mlp    = nn_spec
+)
+
+wf_all <- workflow_set(
+  preproc = list(rec = rec),   # our recipe defined earlier
+  models  = models_list
+)
+
+#–– 3. Fit all workflows via resampling ––
+#wf_res <- wf_all %>%
+  #workflow_map(
+    #fn      = "fit_resamples",
+    #resamples = camels_cv,     # 10‐fold CV object
+    #control = control_resamples(save_pred = TRUE)
+  #)
+
+#–– 4. Compare model performance ––
+#autoplot(wf_res)               # visually compare RMSE over folds
+#rank_results(wf_res, 
+            # rank_metric = "rsq", 
+             #select_best = FALSE)  # table of mean RMSE & R² per model
+
+#–– 5. Inspect and choose ––
+# Look for the model with the highest mean R² (and/or lowest mean RMSE).
+
 ```
 
