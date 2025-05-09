@@ -45,3 +45,58 @@ camels <- map(local_files, read_delim, show_col_types = FALSE)
 camels <- power_full_join(camels ,by = 'gauge_id')
 ```
 
+Question 1: zero_q_freq represents the frequency of days with Q = 0 mm/day. 
+
+Here is the map that was provided to us in the lab instructions.
+```{r}
+library(ggthemes)
+ggplot(data = camels, aes(x = gauge_lon, y = gauge_lat)) +
+  borders("state", colour = "gray50") +
+  geom_point(aes(color = q_mean)) +
+  scale_color_gradient(low = "pink", high = "dodgerblue") +
+  ggthemes::theme_map()
+```
+
+Question #2:
+Here are my 2 maps
+```{r}
+
+library(patchwork)
+
+# Map 1: colored by aridity
+map_aridity <- ggplot(camels, aes(x = gauge_lon, y = gauge_lat)) +
+  borders("state", colour = "gray50") +
+  geom_point(aes(color = aridity), size = 1.5) +
+  scale_color_viridis_c(option = "magma", name = "Aridity\n(index)") +
+  labs(
+    title    = "CAMELS Sites: Aridity",
+    x        = "Longitude",
+    y        = "Latitude"
+  ) +
+  theme_map() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  )
+
+# Map 2: colored by mean precipitation
+map_pmean <- ggplot(camels, aes(x = gauge_lon, y = gauge_lat)) +
+  borders("state", colour = "gray50") +
+  geom_point(aes(color = p_mean), size = 1.5) +
+  scale_color_viridis_c(option = "plasma", name = expression(bar(P)~"(mm)")) +
+  labs(
+    title    = "CAMELS Sites: Mean Precipitation",
+    x        = "Longitude",
+    y        = "Latitude"
+  ) +
+  theme_map() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  )
+
+# Combine side-by-side
+map_aridity + map_pmean + 
+  plot_layout(ncol = 2, guides = "collect") & 
+  theme(legend.position = "bottom")
+
+```
+
