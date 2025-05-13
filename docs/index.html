@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.5.57">
+<meta name="generator" content="quarto-1.6.42">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -63,10 +63,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="index_files/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="index_files/libs/quarto-html/anchor.min.js"></script>
 <link href="index_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="index_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="index_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="index_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="index_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="index_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="index_files/libs/bootstrap/bootstrap-c0367b04c37547644fece4185067e4a7.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 
 
 </head>
@@ -122,7 +122,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>camels <span class="ot">&lt;-</span> <span class="fu">map</span>(local_files, read_delim, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>) </span>
 <span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>camels <span class="ot">&lt;-</span> <span class="fu">power_full_join</span>(camels ,<span class="at">by =</span> <span class="st">'gauge_id'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>camels <span class="ot">&lt;-</span> <span class="fu">power_full_join</span>(camels ,<span class="at">by =</span> <span class="st">'gauge_id'</span>)</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>camels <span class="ot">&lt;-</span> camels <span class="sc">%&gt;%</span> </span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(q_mean <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span>                   <span class="co"># drop any zeros or negatives</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">logQmean =</span> <span class="fu">log</span>(q_mean))           <span class="co"># now every logQmean is finite</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co"># then re‐do your splitting…</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>camels_split <span class="ot">&lt;-</span> <span class="fu">initial_split</span>(camels, <span class="at">prop =</span> <span class="fl">0.75</span>, <span class="at">strata =</span> logQmean)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>camels_train <span class="ot">&lt;-</span> <span class="fu">training</span>(camels_split)</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>camels_test  <span class="ot">&lt;-</span> <span class="fu">testing</span>(camels_split)</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>camels_cv    <span class="ot">&lt;-</span> <span class="fu">vfold_cv</span>(camels_train, <span class="at">v =</span> <span class="dv">10</span>, <span class="at">strata =</span> logQmean)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="question-1" class="level2">
@@ -347,21 +357,21 @@ Call:
 lm(formula = logQmean ~ aridity * p_mean, data = baked_data)
 
 Residuals:
-     Min       1Q   Median       3Q      Max 
--2.91162 -0.21601 -0.00716  0.21230  2.85706 
+    Min      1Q  Median      3Q     Max 
+-2.9149 -0.2136 -0.0142  0.1977  2.8855 
 
 Coefficients:
                Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept)    -1.77586    0.16365 -10.852  &lt; 2e-16 ***
-aridity        -0.88397    0.16145  -5.475 6.75e-08 ***
-p_mean          1.48438    0.15511   9.570  &lt; 2e-16 ***
-aridity:p_mean  0.10484    0.07198   1.457    0.146    
+(Intercept)    -1.69673    0.16373 -10.363  &lt; 2e-16 ***
+aridity        -0.96151    0.16213  -5.930 5.44e-09 ***
+p_mean          1.41295    0.15480   9.128  &lt; 2e-16 ***
+aridity:p_mean  0.12004    0.07232   1.660   0.0975 .  
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Residual standard error: 0.5696 on 531 degrees of freedom
-Multiple R-squared:  0.7697,    Adjusted R-squared:  0.7684 
-F-statistic: 591.6 on 3 and 531 DF,  p-value: &lt; 2.2e-16</code></pre>
+Residual standard error: 0.5719 on 532 degrees of freedom
+Multiple R-squared:  0.7685,    Adjusted R-squared:  0.7672 
+F-statistic: 588.8 on 3 and 532 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -374,21 +384,21 @@ lm(formula = logQmean ~ aridity + p_mean + aridity_x_p_mean,
     data = baked_data)
 
 Residuals:
-     Min       1Q   Median       3Q      Max 
--2.91162 -0.21601 -0.00716  0.21230  2.85706 
+    Min      1Q  Median      3Q     Max 
+-2.9149 -0.2136 -0.0142  0.1977  2.8855 
 
 Coefficients:
                  Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept)      -1.77586    0.16365 -10.852  &lt; 2e-16 ***
-aridity          -0.88397    0.16145  -5.475 6.75e-08 ***
-p_mean            1.48438    0.15511   9.570  &lt; 2e-16 ***
-aridity_x_p_mean  0.10484    0.07198   1.457    0.146    
+(Intercept)      -1.69673    0.16373 -10.363  &lt; 2e-16 ***
+aridity          -0.96151    0.16213  -5.930 5.44e-09 ***
+p_mean            1.41295    0.15480   9.128  &lt; 2e-16 ***
+aridity_x_p_mean  0.12004    0.07232   1.660   0.0975 .  
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Residual standard error: 0.5696 on 531 degrees of freedom
-Multiple R-squared:  0.7697,    Adjusted R-squared:  0.7684 
-F-statistic: 591.6 on 3 and 531 DF,  p-value: &lt; 2.2e-16</code></pre>
+Residual standard error: 0.5719 on 532 degrees of freedom
+Multiple R-squared:  0.7685,    Adjusted R-squared:  0.7672 
+F-statistic: 588.8 on 3 and 532 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 </div>
 <p>To correctly evaluate the model on the test data, we need to apply the same preprocessing steps to the test data that we applied to the training data. We can do this using the prep and bake functions with the recipe object. This ensures the test data is transformed in the same way as the training data before making predictions.</p>
@@ -403,9 +413,9 @@ F-statistic: 591.6 on 3 and 531 DF,  p-value: &lt; 2.2e-16</code></pre>
 <pre><code># A tibble: 3 × 3
   .metric .estimator .estimate
   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
-1 rmse    standard       0.583
-2 rsq     standard       0.742
-3 mae     standard       0.390</code></pre>
+1 rmse    standard       0.575
+2 rsq     standard       0.744
+3 mae     standard       0.397</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -449,10 +459,10 @@ F-statistic: 591.6 on 3 and 531 DF,  p-value: &lt; 2.2e-16</code></pre>
 <span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">extract_fit_engine</span>(lm_wf))<span class="sc">$</span>coefficients</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                   Estimate Std. Error    t value     Pr(&gt;|t|)
-(Intercept)      -1.7758557 0.16364755 -10.851710 6.463654e-25
-aridity          -0.8839738 0.16144589  -5.475357 6.745512e-08
-p_mean            1.4843771 0.15511117   9.569762 4.022500e-20
-aridity_x_p_mean  0.1048449 0.07198145   1.456555 1.458304e-01</code></pre>
+(Intercept)      -1.6967322 0.16372998 -10.362990 4.794423e-23
+aridity          -0.9615104 0.16212978  -5.930498 5.440196e-09
+p_mean            1.4129541 0.15480012   9.127603 1.448210e-18
+aridity_x_p_mean  0.1200410 0.07232329   1.659783 9.754732e-02</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -460,10 +470,10 @@ aridity_x_p_mean  0.1048449 0.07198145   1.456555 1.458304e-01</code></pre>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_base)<span class="sc">$</span>coefficients</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                 Estimate Std. Error    t value     Pr(&gt;|t|)
-(Intercept)    -1.7758557 0.16364755 -10.851710 6.463654e-25
-aridity        -0.8839738 0.16144589  -5.475357 6.745512e-08
-p_mean          1.4843771 0.15511117   9.569762 4.022500e-20
-aridity:p_mean  0.1048449 0.07198145   1.456555 1.458304e-01</code></pre>
+(Intercept)    -1.6967322 0.16372998 -10.362990 4.794423e-23
+aridity        -0.9615104 0.16212978  -5.930498 5.440196e-09
+p_mean          1.4129541 0.15480012   9.127603 1.448210e-18
+aridity:p_mean  0.1200410 0.07232329   1.659783 9.754732e-02</code></pre>
 </div>
 </div>
 <p>Now that lm_wf is a workflow, data is not embedded in the model, we can use augment with the new_data argument to make predictions on the test data.</p>
@@ -472,7 +482,7 @@ aridity:p_mean  0.1048449 0.07198145   1.456555 1.458304e-01</code></pre>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>lm_data <span class="ot">&lt;-</span> <span class="fu">augment</span>(lm_wf, <span class="at">new_data =</span> camels_test)</span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(lm_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 135  61</code></pre>
+<pre><code>[1] 134  61</code></pre>
 </div>
 </div>
 <p>As with EDA, applying for graphical and statistical evaluation of the model is a key Here, we use the metrics function to extract the default metrics (rmse, rsq, mae) between the observed and predicted mean streamflow values.</p>
@@ -483,9 +493,9 @@ aridity:p_mean  0.1048449 0.07198145   1.456555 1.458304e-01</code></pre>
 <pre><code># A tibble: 3 × 3
   .metric .estimator .estimate
   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
-1 rmse    standard       0.583
-2 rsq     standard       0.742
-3 mae     standard       0.390</code></pre>
+1 rmse    standard       0.575
+2 rsq     standard       0.744
+3 mae     standard       0.397</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -522,7 +532,7 @@ aridity:p_mean  0.1048449 0.07198145   1.456555 1.458304e-01</code></pre>
 <div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>rf_data <span class="ot">&lt;-</span> <span class="fu">augment</span>(rf_wf, <span class="at">new_data =</span> camels_test)</span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(rf_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 135  60</code></pre>
+<pre><code>[1] 134  60</code></pre>
 </div>
 </div>
 <p>Evaluate the model using the metrics function and create a scatter plot of the observed vs predicted values, colored by aridity.</p>
@@ -532,9 +542,9 @@ aridity:p_mean  0.1048449 0.07198145   1.456555 1.458304e-01</code></pre>
 <pre><code># A tibble: 3 × 3
   .metric .estimator .estimate
   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
-1 rmse    standard       0.587
-2 rsq     standard       0.741
-3 mae     standard       0.363</code></pre>
+1 rmse    standard       0.549
+2 rsq     standard       0.767
+3 mae     standard       0.354</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -571,63 +581,250 @@ aridity:p_mean  0.1048449 0.07198145   1.456555 1.458304e-01</code></pre>
 <pre><code># A tibble: 4 × 9
   wflow_id          .config .metric  mean std_err     n preprocessor model  rank
   &lt;chr&gt;             &lt;chr&gt;   &lt;chr&gt;   &lt;dbl&gt;   &lt;dbl&gt; &lt;int&gt; &lt;chr&gt;        &lt;chr&gt; &lt;int&gt;
-1 recipe_rand_fore… Prepro… rmse    0.563  0.0247    10 recipe       rand…     1
-2 recipe_rand_fore… Prepro… rsq     0.771  0.0259    10 recipe       rand…     1
-3 recipe_linear_reg Prepro… rmse    0.569  0.0260    10 recipe       line…     2
-4 recipe_linear_reg Prepro… rsq     0.770  0.0223    10 recipe       line…     2</code></pre>
+1 recipe_rand_fore… Prepro… rmse    0.560  0.0369    10 recipe       rand…     1
+2 recipe_rand_fore… Prepro… rsq     0.776  0.0264    10 recipe       rand…     1
+3 recipe_linear_reg Prepro… rmse    0.570  0.0296    10 recipe       line…     2
+4 recipe_linear_reg Prepro… rsq     0.772  0.0218    10 recipe       line…     2</code></pre>
 </div>
 </div>
 </section>
 <section id="question-3" class="level2">
 <h2 class="anchored" data-anchor-id="question-3">Question 3</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co">#–– 1. Define the new model specs ––</span></span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="co"># a) XGBoost regression</span></span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>xgb_spec <span class="ot">&lt;-</span> <span class="fu">boost_tree</span>(        <span class="co"># gradient boosting trees</span></span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">trees =</span> <span class="dv">1000</span>,                <span class="co"># default number of trees</span></span>
-<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">tree_depth =</span> <span class="fu">tune</span>(),         <span class="co"># tuned if desired</span></span>
-<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">learn_rate =</span> <span class="fu">tune</span>(),         <span class="co"># learning rate</span></span>
-<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">loss_reduction =</span> <span class="fu">tune</span>()      <span class="co"># gamma / min split loss</span></span>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Define the new model </span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>xgb_spec <span class="ot">&lt;-</span> <span class="fu">boost_tree</span>(</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">trees        =</span> <span class="dv">1000</span>,         </span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">tree_depth   =</span> <span class="fu">tune</span>(),       </span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">learn_rate   =</span> <span class="fu">tune</span>(),      </span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">loss_reduction =</span> <span class="fu">tune</span>()     </span>
 <span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
 <span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"xgboost"</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"regression"</span>)</span>
 <span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a><span class="co"># b) Bagged MLP (neural net) via baguette</span></span>
-<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>nn_spec <span class="ot">&lt;-</span> <span class="fu">bag_mlp</span>(            <span class="co"># bagged multilayer perceptron</span></span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a><span class="co">#Bagged MLP  via baguette</span></span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>nn_spec <span class="ot">&lt;-</span> <span class="fu">bag_mlp</span>(</span>
 <span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">mode =</span> <span class="st">"regression"</span></span>
 <span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
 <span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"nnet"</span>)</span>
 <span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a><span class="co">#–– 2. Re‐create the workflow set with all four models ––</span></span>
-<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a><span class="co"># (we give each a name for clarity)</span></span>
-<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a>models_list <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">linear =</span> lm_model,           <span class="co"># from previous code</span></span>
-<span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">rf     =</span> rf_model,</span>
-<span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">xgb    =</span> xgb_spec,</span>
-<span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">mlp    =</span> nn_spec</span>
-<span id="cb42-25"><a href="#cb42-25" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-27"><a href="#cb42-27" aria-hidden="true" tabindex="-1"></a>wf_all <span class="ot">&lt;-</span> <span class="fu">workflow_set</span>(</span>
-<span id="cb42-28"><a href="#cb42-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">preproc =</span> <span class="fu">list</span>(<span class="at">rec =</span> rec),   <span class="co"># our recipe defined earlier</span></span>
-<span id="cb42-29"><a href="#cb42-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">models  =</span> models_list</span>
-<span id="cb42-30"><a href="#cb42-30" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb42-31"><a href="#cb42-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-32"><a href="#cb42-32" aria-hidden="true" tabindex="-1"></a><span class="co">#–– 3. Fit all workflows via resampling ––</span></span>
-<span id="cb42-33"><a href="#cb42-33" aria-hidden="true" tabindex="-1"></a><span class="co">#wf_res &lt;- wf_all %&gt;%</span></span>
-<span id="cb42-34"><a href="#cb42-34" aria-hidden="true" tabindex="-1"></a>  <span class="co">#workflow_map(</span></span>
-<span id="cb42-35"><a href="#cb42-35" aria-hidden="true" tabindex="-1"></a>    <span class="co">#fn      = "fit_resamples",</span></span>
-<span id="cb42-36"><a href="#cb42-36" aria-hidden="true" tabindex="-1"></a>    <span class="co">#resamples = camels_cv,     # 10‐fold CV object</span></span>
-<span id="cb42-37"><a href="#cb42-37" aria-hidden="true" tabindex="-1"></a>    <span class="co">#control = control_resamples(save_pred = TRUE)</span></span>
-<span id="cb42-38"><a href="#cb42-38" aria-hidden="true" tabindex="-1"></a>  <span class="co">#)</span></span>
-<span id="cb42-39"><a href="#cb42-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-40"><a href="#cb42-40" aria-hidden="true" tabindex="-1"></a><span class="co">#–– 4. Compare model performance ––</span></span>
-<span id="cb42-41"><a href="#cb42-41" aria-hidden="true" tabindex="-1"></a><span class="co">#autoplot(wf_res)               # visually compare RMSE over folds</span></span>
-<span id="cb42-42"><a href="#cb42-42" aria-hidden="true" tabindex="-1"></a><span class="co">#rank_results(wf_res, </span></span>
-<span id="cb42-43"><a href="#cb42-43" aria-hidden="true" tabindex="-1"></a>            <span class="co"># rank_metric = "rsq", </span></span>
-<span id="cb42-44"><a href="#cb42-44" aria-hidden="true" tabindex="-1"></a>             <span class="co">#select_best = FALSE)  # table of mean RMSE &amp; R² per model</span></span>
-<span id="cb42-45"><a href="#cb42-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-46"><a href="#cb42-46" aria-hidden="true" tabindex="-1"></a><span class="co">#–– 5. Inspect and choose ––</span></span>
-<span id="cb42-47"><a href="#cb42-47" aria-hidden="true" tabindex="-1"></a><span class="co"># Look for the model with the highest mean R² (and/or lowest mean RMSE).</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a><span class="co">#Re‐create the workflow set with all four models</span></span>
+<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a>models_list <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">linear =</span> lm_model,    </span>
+<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">rf     =</span> rf_model,</span>
+<span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">xgb    =</span> xgb_spec,</span>
+<span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">mlp    =</span> nn_spec</span>
+<span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb42-25"><a href="#cb42-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a>wf_all <span class="ot">&lt;-</span> <span class="fu">workflow_set</span>(</span>
+<span id="cb42-27"><a href="#cb42-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">preproc =</span> <span class="fu">list</span>(<span class="at">rec =</span> rec), </span>
+<span id="cb42-28"><a href="#cb42-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">models  =</span> models_list</span>
+<span id="cb42-29"><a href="#cb42-29" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb42-30"><a href="#cb42-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-31"><a href="#cb42-31" aria-hidden="true" tabindex="-1"></a><span class="co">#Fit all workflows via resampling </span></span>
+<span id="cb42-32"><a href="#cb42-32" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb42-33"><a href="#cb42-33" aria-hidden="true" tabindex="-1"></a>wf_res <span class="ot">&lt;-</span> wf_all <span class="sc">%&gt;%</span></span>
+<span id="cb42-34"><a href="#cb42-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">workflow_map</span>(</span>
+<span id="cb42-35"><a href="#cb42-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">fn       =</span> <span class="st">"tune_grid"</span>,          </span>
+<span id="cb42-36"><a href="#cb42-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">grid     =</span> <span class="dv">5</span>,                    </span>
+<span id="cb42-37"><a href="#cb42-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">resamples =</span> camels_cv,</span>
+<span id="cb42-38"><a href="#cb42-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">metrics  =</span> <span class="fu">metric_set</span>(rsq, rmse),</span>
+<span id="cb42-39"><a href="#cb42-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">control  =</span> <span class="fu">control_grid</span>(<span class="at">save_pred =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb42-40"><a href="#cb42-40" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb42-41"><a href="#cb42-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-42"><a href="#cb42-42" aria-hidden="true" tabindex="-1"></a><span class="fu">autoplot</span>(wf_res)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rank_results</span>(wf_res, <span class="at">rank_metric =</span> <span class="st">"rsq"</span>, <span class="at">select_best =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 16 × 9
+   wflow_id   .config       .metric  mean std_err     n preprocessor model  rank
+   &lt;chr&gt;      &lt;chr&gt;         &lt;chr&gt;   &lt;dbl&gt;   &lt;dbl&gt; &lt;int&gt; &lt;chr&gt;        &lt;chr&gt; &lt;int&gt;
+ 1 rec_xgb    Preprocessor… rmse    0.534  0.0417    10 recipe       boos…     1
+ 2 rec_xgb    Preprocessor… rsq     0.793  0.0284    10 recipe       boos…     1
+ 3 rec_xgb    Preprocessor… rmse    0.644  0.0353    10 recipe       boos…     2
+ 4 rec_xgb    Preprocessor… rsq     0.781  0.0224    10 recipe       boos…     2
+ 5 rec_rf     Preprocessor… rmse    0.557  0.0372    10 recipe       rand…     3
+ 6 rec_rf     Preprocessor… rsq     0.777  0.0267    10 recipe       rand…     3
+ 7 rec_linear Preprocessor… rmse    0.570  0.0296    10 recipe       line…     4
+ 8 rec_linear Preprocessor… rsq     0.772  0.0218    10 recipe       line…     4
+ 9 rec_mlp    Preprocessor… rmse    0.579  0.0399    10 recipe       bag_…     5
+10 rec_mlp    Preprocessor… rsq     0.760  0.0297    10 recipe       bag_…     5
+11 rec_xgb    Preprocessor… rmse    0.729  0.0446    10 recipe       boos…     6
+12 rec_xgb    Preprocessor… rsq     0.752  0.0355    10 recipe       boos…     6
+13 rec_xgb    Preprocessor… rmse    0.610  0.0423    10 recipe       boos…     7
+14 rec_xgb    Preprocessor… rsq     0.734  0.0373    10 recipe       boos…     7
+15 rec_xgb    Preprocessor… rmse    0.664  0.0412    10 recipe       boos…     8
+16 rec_xgb    Preprocessor… rsq     0.699  0.0373    10 recipe       boos…     8</code></pre>
+</div>
+</div>
+<p>Looking at the results, it is clear that I should move foward witht he “boost_tree” model, as it has the highest R^2 value, and the lowest RMSE.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 0. load what you need</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)         <span class="co"># for reproducibility</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. make your target</span></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>camels <span class="ot">&lt;-</span> camels <span class="sc">%&gt;%</span> </span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">logQmean =</span> <span class="fu">log</span>(q_mean))   <span class="co"># log‐transform your outcome up front</span></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. initial split 75% train / 25% test</span></span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>camels_split  <span class="ot">&lt;-</span> <span class="fu">initial_split</span>(camels, <span class="at">prop =</span> <span class="fl">0.75</span>, <span class="at">strata =</span> logQmean)</span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>camels_train  <span class="ot">&lt;-</span> <span class="fu">training</span>(camels_split)</span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>camels_test   <span class="ot">&lt;-</span> <span class="fu">testing</span>(camels_split)</span>
+<span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. 10‐fold CV on the training set</span></span>
+<span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a>camels_cv <span class="ot">&lt;-</span> <span class="fu">vfold_cv</span>(camels_train, <span class="at">v =</span> <span class="dv">10</span>, <span class="at">strata =</span> logQmean)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A. recipe: add/remove predictors and preprocessing as you like</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>rec_xgb <span class="ot">&lt;-</span> <span class="fu">recipe</span>(logQmean <span class="sc">~</span> </span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>                     aridity <span class="sc">+</span> </span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>                     p_mean <span class="sc">+</span> </span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>                     soil_porosity <span class="sc">+</span> </span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>                     geol_porostiy,     <span class="co"># &lt;-- correct spelling here</span></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>                   <span class="at">data =</span> camels_train) <span class="sc">%&gt;%</span></span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_log</span>(<span class="fu">all_numeric_predictors</span>(), <span class="at">offset =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_interact</span>(<span class="at">terms =</span> <span class="sc">~</span> aridity<span class="sc">:</span>p_mean) <span class="sc">%&gt;%</span></span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_normalize</span>(<span class="fu">all_numeric_predictors</span>())</span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>      <span class="co"># center &amp; scale</span></span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a><span class="co"># B. XGBoost spec with tuneable hyper‐parameters</span></span>
+<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a>xgb_spec <span class="ot">&lt;-</span> <span class="fu">boost_tree</span>(</span>
+<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">trees         =</span> <span class="dv">2000</span>,</span>
+<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">tree_depth    =</span> <span class="fu">tune</span>(),</span>
+<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">learn_rate    =</span> <span class="fu">tune</span>(),</span>
+<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">loss_reduction =</span> <span class="fu">tune</span>(),</span>
+<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">sample_size   =</span> <span class="fu">tune</span>()</span>
+<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb46-21"><a href="#cb46-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"xgboost"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb46-22"><a href="#cb46-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"regression"</span>)</span>
+<span id="cb46-23"><a href="#cb46-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-24"><a href="#cb46-24" aria-hidden="true" tabindex="-1"></a><span class="co"># C. put it all in a workflow</span></span>
+<span id="cb46-25"><a href="#cb46-25" aria-hidden="true" tabindex="-1"></a>xgb_wf <span class="ot">&lt;-</span> <span class="fu">workflow</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb46-26"><a href="#cb46-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(rec_xgb) <span class="sc">%&gt;%</span></span>
+<span id="cb46-27"><a href="#cb46-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(xgb_spec)</span>
+<span id="cb46-28"><a href="#cb46-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-29"><a href="#cb46-29" aria-hidden="true" tabindex="-1"></a><span class="co"># D. create a reasonable hyper‐parameter grid</span></span>
+<span id="cb46-30"><a href="#cb46-30" aria-hidden="true" tabindex="-1"></a>xgb_params <span class="ot">&lt;-</span> <span class="fu">parameters</span>(xgb_spec)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: `parameters.model_spec()` was deprecated in tune 0.1.6.9003.
+ℹ Please use `hardhat::extract_parameter_set_dials()` instead.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>xgb_grid   <span class="ot">&lt;-</span> <span class="fu">grid_space_filling</span>(<span class="fu">parameters</span>(xgb_spec), <span class="at">size =</span> <span class="dv">20</span>)</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>xgb_tune   <span class="ot">&lt;-</span> <span class="fu">tune_grid</span>(</span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>  xgb_wf,</span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">resamples =</span> camels_cv,</span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">grid      =</span> xgb_grid,</span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">metrics   =</span> <span class="fu">metric_set</span>(rsq, rmse),</span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">control   =</span> <span class="fu">control_grid</span>(<span class="at">save_pred =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-11"><a href="#cb48-11" aria-hidden="true" tabindex="-1"></a><span class="fu">autoplot</span>(xgb_tune)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-30-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_metrics</span>(xgb_tune)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 40 × 10
+   tree_depth learn_rate loss_reduction sample_size .metric .estimator  mean
+        &lt;int&gt;      &lt;dbl&gt;          &lt;dbl&gt;       &lt;dbl&gt; &lt;chr&gt;   &lt;chr&gt;      &lt;dbl&gt;
+ 1          1    0.00616   0.0298             0.432 rmse    standard   0.504
+ 2          1    0.00616   0.0298             0.432 rsq     standard   0.823
+ 3          1    0.173     0.0000280          0.621 rmse    standard   0.556
+ 4          1    0.173     0.0000280          0.621 rsq     standard   0.786
+ 5          2    0.00455   0.00000695         0.905 rmse    standard   0.479
+ 6          2    0.00455   0.00000695         0.905 rsq     standard   0.838
+ 7          2    0.0153    0.0000000001       0.526 rmse    standard   0.503
+ 8          2    0.0153    0.0000000001       0.526 rsq     standard   0.823
+ 9          3    0.0280    0.00000173         0.1   rmse    standard   0.525
+10          3    0.0280    0.00000173         0.1   rsq     standard   0.809
+# ℹ 30 more rows
+# ℹ 3 more variables: n &lt;int&gt;, std_err &lt;dbl&gt;, .config &lt;chr&gt;</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="co"># G. pull out the best for R², finalize &amp; test</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="co"># G. pull out the best for R²</span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>best_params <span class="ot">&lt;-</span> <span class="fu">select_best</span>(xgb_tune, <span class="at">metric =</span> <span class="st">"rsq"</span>)</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a><span class="co"># finalize &amp; test</span></span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>final_wf  <span class="ot">&lt;-</span> <span class="fu">finalize_workflow</span>(xgb_wf, best_params)</span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>final_fit <span class="ot">&lt;-</span> <span class="fu">last_fit</span>(final_wf, camels_split)</span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_metrics</span>(final_fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 4
+  .metric .estimator .estimate .config             
+  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;               
+1 rmse    standard       0.443 Preprocessor1_Model1
+2 rsq     standard       0.867 Preprocessor1_Model1</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>logQmean <span class="sc">~</span> </span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>  p_mean       <span class="sc">+</span>   <span class="co"># mean annual precipitation – main driver of streamflow </span></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>  pet_mean     <span class="sc">+</span>   <span class="co"># potential evapotranspiration – controls loss  </span></span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>  aridity      <span class="sc">+</span>   <span class="co"># long‐term dryness metric (p_mean / pet_mean)  </span></span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>  frac_snow    <span class="sc">+</span>   <span class="co"># fraction of precipitation as snow – seasonality  </span></span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>  soil_porosity <span class="sc">+</span>   <span class="co"># controls infiltration &amp; baseflow  </span></span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>  geol_porostiy    <span class="co"># geology‐inferred porosity (rocks)  </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>logQmean ~ p_mean + pet_mean + aridity + frac_snow + soil_porosity + 
+    geol_porostiy</code></pre>
+</div>
+</div>
+<p>I chose these 6 predictors because p_mean and pet_mean come straight from the PDF description and together they explain the water input vs.&nbsp;evaporative loss.</p>
+<p>Aridity is simply p_mean / pet_mean; it captures the overall climate “dryness.”</p>
+<p>frac_snow tells us how much of that precipitation falls as snow which is important for timing/magnitude of summer flows.</p>
+<p>soil_porosity and geol_porostiy control how much water the basin can store and slowly release, smoothing peaks and boosting baseflow.</p>
+<p>Empirically in hydrology these six together usually explain the lion’s share of cross‐site Qmean variability, so they’re a logical starting point.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>rec_final <span class="ot">&lt;-</span> <span class="fu">recipe</span>(</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>                logQmean <span class="sc">~</span> </span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>                  p_mean <span class="sc">+</span> pet_mean <span class="sc">+</span> aridity <span class="sc">+</span> frac_snow <span class="sc">+</span> </span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>                  soil_porosity <span class="sc">+</span> geol_porostiy,</span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>                <span class="at">data =</span> camels_train</span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>              ) <span class="sc">%&gt;%</span></span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># a) log‐transform the three most skewed inputs</span></span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_log</span>(<span class="fu">all_of</span>(<span class="fu">c</span>(<span class="st">"p_mean"</span>, <span class="st">"pet_mean"</span>, <span class="st">"frac_snow"</span>)), <span class="at">offset =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># b) add a simple interaction between precipitation &amp; aridity</span></span>
+<span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_interact</span>(<span class="at">terms =</span> <span class="sc">~</span> p_mean<span class="sc">:</span>aridity) <span class="sc">%&gt;%</span></span>
+<span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># c) center &amp; scale everything so XGBoost doesn't have to handle wildly different ranges</span></span>
+<span id="cb55-14"><a href="#cb55-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_normalize</span>(<span class="fu">all_numeric_predictors</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb55-15"><a href="#cb55-15" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb55-16"><a href="#cb55-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># d) drop any zero‐variance columns (just in case)</span></span>
+<span id="cb55-17"><a href="#cb55-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_zv</span>(<span class="fu">all_predictors</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>final_wf <span class="ot">&lt;-</span> <span class="fu">workflow</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(rec_final) <span class="sc">%&gt;%</span></span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(xgb_spec) <span class="sc">%&gt;%</span></span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">finalize_workflow</span>(best_params)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Using `all_of()` outside of a selecting function was deprecated in tidyselect
+1.2.0.
+ℹ See details at
+  &lt;https://tidyselect.r-lib.org/reference/faq-selection-context.html&gt;</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>final_fit <span class="ot">&lt;-</span> <span class="fu">last_fit</span>(final_wf, camels_split)</span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_metrics</span>(final_fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 4
+  .metric .estimator .estimate .config             
+  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;               
+1 rmse    standard       0.396 Preprocessor1_Model1
+2 rsq     standard       0.895 Preprocessor1_Model1</code></pre>
+</div>
 </div>
 </section>
 
@@ -715,8 +912,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   });
   clipboard.on('success', onCopySuccess);
   if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-    // For code content inside modals, clipBoardJS needs to be initialized with a container option
-    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
     const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
       text: getTextToCopy,
       container: window.document.getElementById('quarto-embedded-source-code-modal')
@@ -827,7 +1022,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (window.Quarto?.typesetMath) {
         window.Quarto.typesetMath(note);
       }
-      // TODO in 1.5, we should make sure this works without a callout special case
       if (note.classList.contains("callout")) {
         return note.outerHTML;
       } else {

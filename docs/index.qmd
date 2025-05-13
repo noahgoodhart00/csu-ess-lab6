@@ -17,7 +17,9 @@ library(glue)
 library(vip)
 library(baguette)
 ```
+
 Now I have to download the CAMELS dataset and documentation PDF
+
 ```{r}
 root  <- 'https://gdex.ucar.edu/dataset/camels/file'
 ```
@@ -30,9 +32,11 @@ download.file(
 )
 
 
+
 ```
 
 After downloading the data, I had to create remote and local file paths for six CAMELS attribute text files, then I downloaded each one into my data folder. Then I read all the downloaded files into R as tibbles and performs a full outer join on gauge_id to combine them into a single dataset.
+
 ```{r}
 types <- c("clim", "geol", "soil", "topo", "vege", "hydro")
 
@@ -45,13 +49,25 @@ walk2(remote_files, local_files, download.file, quiet = TRUE)
 camels <- map(local_files, read_delim, show_col_types = FALSE) 
 
 camels <- power_full_join(camels ,by = 'gauge_id')
+
+camels <- camels %>% 
+  filter(q_mean > 0) %>%                   # drop any zeros or negatives
+  mutate(logQmean = log(q_mean))           # now every logQmean is finite
+
+# then re‐do your splitting…
+camels_split <- initial_split(camels, prop = 0.75, strata = logQmean)
+camels_train <- training(camels_split)
+camels_test  <- testing(camels_split)
+camels_cv    <- vfold_cv(camels_train, v = 10, strata = logQmean)
+
 ```
 
 ## Question 1
 
-Question 1: zero_q_freq represents the frequency of days with Q = 0 mm/day. 
+Question 1: zero_q_freq represents the frequency of days with Q = 0 mm/day.
 
 Here is the map that was provided to us in the lab instructions.
+
 ```{r}
 library(ggthemes)
 ggplot(data = camels, aes(x = gauge_lon, y = gauge_lat)) +
@@ -63,8 +79,8 @@ ggplot(data = camels, aes(x = gauge_lon, y = gauge_lat)) +
 
 ## Question 2
 
-Question #2:
-Here are my 2 maps
+Question #2: Here are my 2 maps
+
 ```{r}
 
 library(patchwork)
@@ -107,6 +123,7 @@ ggarrange(
   font.label  = list(size = 14, face = "bold")
 )
 ```
+
 ## Model Preparation
 
 For the next part, I have to do some model preparation. The following code (up until Question #3) is provided for us in the lab, but I am copying it all down, along with the explanations, so I can follow along easier.
@@ -117,10 +134,10 @@ camels |>
   drop_na() |> 
   cor()
 ```
+
 As expected, there is a strong correlation between rainfall and mean flow, and an inverse correlation between aridity and rainfall. While both are high, we are going see if we can build a model to predict mean flow using aridity and rainfall.
 
-
-We'll start by looking that the 3 dimensions (variables) of this data. We’ll start with a XY plot of aridity and rainfall. 
+We'll start by looking that the 3 dimensions (variables) of this data. We’ll start with a XY plot of aridity and rainfall.
 
 ```{r}
 # Create a scatter plot of aridity vs rainfall
@@ -143,6 +160,7 @@ ggplot(camels, aes(x = aridity, y = p_mean)) +
 So it looks like there is a relationship between rainfall, aridity, and rainfall but it looks like an exponential decay function and is certainly not linear.
 
 To test a transformation, we can log transform the x and y axes using the scale_x_log10() and scale_y_log10() functions.
+
 ```{r}
 ggplot(camels, aes(x = aridity, y = p_mean)) +
   geom_point(aes(color = q_mean)) +
@@ -234,11 +252,11 @@ baked_data <- prep(rec, camels_train) |>
 lm_base <- lm(logQmean ~ aridity * p_mean, data = baked_data)
 summary(lm_base)
 ```
+
 ```{r}
 # Sanity Interaction term from recipe ... these should be equal!!
 summary(lm(logQmean ~ aridity + p_mean + aridity_x_p_mean, data = baked_data))
 ```
-
 
 To correctly evaluate the model on the test data, we need to apply the same preprocessing steps to the test data that we applied to the training data. We can do this using the prep and bake functions with the recipe object. This ensures the test data is transformed in the same way as the training data before making predictions.
 
@@ -252,6 +270,7 @@ Now that we have the predicted values, we can evaluate the model using the metri
 ```{r}
 metrics(test_data, truth = logQmean, estimate = lm_pred)
 ```
+
 ```{r}
 ggplot(test_data, aes(x = logQmean, y = lm_pred, colour = aridity)) +
   # Apply a gradient color scale
@@ -266,6 +285,7 @@ ggplot(test_data, aes(x = logQmean, y = lm_pred, colour = aridity)) +
 ```
 
 Workflows are built from a model, a preprocessor, and a execution. Here, we are going to use the linear_reg function to define a linear regression model, set the engine to lm, and the mode to regression. We then add our recipe to the workflow, fit the model to the training data, and extract the model coefficients.
+
 ```{r}
 # Define model
 lm_model <- linear_reg() %>%
@@ -286,11 +306,14 @@ lm_wf <- workflow() %>%
 # Extract the model coefficients from the workflow
 summary(extract_fit_engine(lm_wf))$coefficients
 ```
+
 ```{r}
 # From the base implementation
 summary(lm_base)$coefficients
 ```
+
 Now that lm_wf is a workflow, data is not embedded in the model, we can use augment with the new_data argument to make predictions on the test data.
+
 ```{r}
 #
 lm_data <- augment(lm_wf, new_data = camels_test)
@@ -331,15 +354,18 @@ rf_wf <- workflow() %>%
 ```
 
 Make predictions on the test data using the augment function and the new_data argument.
+
 ```{r}
 rf_data <- augment(rf_wf, new_data = camels_test)
 dim(rf_data)
 ```
 
 Evaluate the model using the metrics function and create a scatter plot of the observed vs predicted values, colored by aridity.
+
 ```{r}
 metrics(rf_data, truth = logQmean, estimate = .pred)
 ```
+
 ```{r}
 ggplot(rf_data, aes(x = logQmean, y = .pred, colour = aridity)) +
   scale_color_viridis_c() +
@@ -349,6 +375,7 @@ ggplot(rf_data, aes(x = logQmean, y = .pred, colour = aridity)) +
 ```
 
 workflow_set is a powerful tool for comparing multiple models on the same data. It allows you to define a set of workflows, fit them to the same data, and evaluate their performance using a common metric. Here, we are going to create a workflow_set object with the linear regression and random forest models, fit them to the training data, and compare their performance using the autoplot and rank_results functions.
+
 ```{r}
 wf <- workflow_set(list(rec), list(lm_model, rf_model)) %>%
   workflow_map('fit_resamples', resamples = camels_cv) 
@@ -359,55 +386,186 @@ autoplot(wf)
 ```{r}
 rank_results(wf, rank_metric = "rsq", select_best = TRUE)
 ```
+
 ## Question 3
+
 ```{r}
-#–– 1. Define the new model specs ––
-# a) XGBoost regression
-xgb_spec <- boost_tree(        # gradient boosting trees
-  trees = 1000,                # default number of trees
-  tree_depth = tune(),         # tuned if desired
-  learn_rate = tune(),         # learning rate
-  loss_reduction = tune()      # gamma / min split loss
+#Define the new model 
+
+xgb_spec <- boost_tree(
+  trees        = 1000,         
+  tree_depth   = tune(),       
+  learn_rate   = tune(),      
+  loss_reduction = tune()     
 ) %>%
   set_engine("xgboost") %>%
   set_mode("regression")
 
-# b) Bagged MLP (neural net) via baguette
-nn_spec <- bag_mlp(            # bagged multilayer perceptron
+#Bagged MLP  via baguette
+nn_spec <- bag_mlp(
   mode = "regression"
 ) %>%
   set_engine("nnet")
 
-#–– 2. Re‐create the workflow set with all four models ––
-# (we give each a name for clarity)
+#Re‐create the workflow set with all four models
 models_list <- list(
-  linear = lm_model,           # from previous code
+  linear = lm_model,    
   rf     = rf_model,
   xgb    = xgb_spec,
   mlp    = nn_spec
 )
 
 wf_all <- workflow_set(
-  preproc = list(rec = rec),   # our recipe defined earlier
+  preproc = list(rec = rec), 
   models  = models_list
 )
 
-#–– 3. Fit all workflows via resampling ––
-#wf_res <- wf_all %>%
-  #workflow_map(
-    #fn      = "fit_resamples",
-    #resamples = camels_cv,     # 10‐fold CV object
-    #control = control_resamples(save_pred = TRUE)
-  #)
+#Fit all workflows via resampling 
+set.seed(123)
+wf_res <- wf_all %>%
+  workflow_map(
+    fn       = "tune_grid",          
+    grid     = 5,                    
+    resamples = camels_cv,
+    metrics  = metric_set(rsq, rmse),
+    control  = control_grid(save_pred = TRUE)
+  )
 
-#–– 4. Compare model performance ––
-#autoplot(wf_res)               # visually compare RMSE over folds
-#rank_results(wf_res, 
-            # rank_metric = "rsq", 
-             #select_best = FALSE)  # table of mean RMSE & R² per model
+autoplot(wf_res)
+rank_results(wf_res, rank_metric = "rsq", select_best = FALSE)
 
-#–– 5. Inspect and choose ––
-# Look for the model with the highest mean R² (and/or lowest mean RMSE).
+```
+Looking at the results, it is clear that I should move foward witht he "boost_tree" model, as it has the highest R^2 value, and the lowest RMSE.
+
+```{r}
+# 0. load what you need
+set.seed(123)         # for reproducibility
+
+# 1. make your target
+camels <- camels %>% 
+  mutate(logQmean = log(q_mean))   # log‐transform your outcome up front
+
+# 2. initial split 75% train / 25% test
+camels_split  <- initial_split(camels, prop = 0.75, strata = logQmean)
+camels_train  <- training(camels_split)
+camels_test   <- testing(camels_split)
+
+# 3. 10‐fold CV on the training set
+camels_cv <- vfold_cv(camels_train, v = 10, strata = logQmean)
+
+```
+
+```{r}
+# A. recipe: add/remove predictors and preprocessing as you like
+rec_xgb <- recipe(logQmean ~ 
+                     aridity + 
+                     p_mean + 
+                     soil_porosity + 
+                     geol_porostiy,     # <-- correct spelling here
+                   data = camels_train) %>%
+  step_log(all_numeric_predictors(), offset = 1) %>%
+  step_interact(terms = ~ aridity:p_mean) %>%
+  step_normalize(all_numeric_predictors())
+      # center & scale
+
+# B. XGBoost spec with tuneable hyper‐parameters
+xgb_spec <- boost_tree(
+  trees         = 2000,
+  tree_depth    = tune(),
+  learn_rate    = tune(),
+  loss_reduction = tune(),
+  sample_size   = tune()
+) %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+# C. put it all in a workflow
+xgb_wf <- workflow() %>%
+  add_recipe(rec_xgb) %>%
+  add_model(xgb_spec)
+
+# D. create a reasonable hyper‐parameter grid
+xgb_params <- parameters(xgb_spec)
+
+xgb_grid   <- grid_space_filling(parameters(xgb_spec), size = 20)
+
+xgb_tune   <- tune_grid(
+  xgb_wf,
+  resamples = camels_cv,
+  grid      = xgb_grid,
+  metrics   = metric_set(rsq, rmse),
+  control   = control_grid(save_pred = TRUE)
+)
+
+autoplot(xgb_tune)
+collect_metrics(xgb_tune)
+
+
+
+
+# G. pull out the best for R², finalize & test
+# G. pull out the best for R²
+best_params <- select_best(xgb_tune, metric = "rsq")
+
+# finalize & test
+final_wf  <- finalize_workflow(xgb_wf, best_params)
+final_fit <- last_fit(final_wf, camels_split)
+
+collect_metrics(final_fit)
+
+```
+
+
+```{r}
+logQmean ~ 
+  p_mean       +   # mean annual precipitation – main driver of streamflow 
+  pet_mean     +   # potential evapotranspiration – controls loss  
+  aridity      +   # long‐term dryness metric (p_mean / pet_mean)  
+  frac_snow    +   # fraction of precipitation as snow – seasonality  
+  soil_porosity +   # controls infiltration & baseflow  
+  geol_porostiy    # geology‐inferred porosity (rocks)  
+
+```
+
+I chose these 6 predictors because p_mean and pet_mean come straight from the PDF description and together they explain the water input vs. evaporative loss.
+
+Aridity is simply p_mean / pet_mean; it captures the overall climate “dryness.”
+
+frac_snow tells us how much of that precipitation falls as snow which is important for timing/magnitude of summer flows.
+
+soil_porosity and geol_porostiy control how much water the basin can store and slowly release, smoothing peaks and boosting baseflow.
+
+Empirically in hydrology these six together usually explain the lion’s share of cross‐site Qmean variability, so they’re a logical starting point.
+
+```{r}
+rec_final <- recipe(
+                logQmean ~ 
+                  p_mean + pet_mean + aridity + frac_snow + 
+                  soil_porosity + geol_porostiy,
+                data = camels_train
+              ) %>%
+  # a) log‐transform the three most skewed inputs
+  step_log(all_of(c("p_mean", "pet_mean", "frac_snow")), offset = 1) %>%
+  
+  # b) add a simple interaction between precipitation & aridity
+  step_interact(terms = ~ p_mean:aridity) %>%
+  
+  # c) center & scale everything so XGBoost doesn't have to handle wildly different ranges
+  step_normalize(all_numeric_predictors()) %>%
+  
+  # d) drop any zero‐variance columns (just in case)
+  step_zv(all_predictors())
+
+```
+
+```{r}
+final_wf <- workflow() %>%
+  add_recipe(rec_final) %>%
+  add_model(xgb_spec) %>%
+  finalize_workflow(best_params)
+
+final_fit <- last_fit(final_wf, camels_split)
+collect_metrics(final_fit)
 
 ```
 
